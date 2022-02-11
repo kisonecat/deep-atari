@@ -5,60 +5,48 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        self.fc = nn.Sequential(
-            nn.Linear(32*32, 32*8),
-            nn.ReLU(True),
-            nn.Linear(32*8, 32*8),
-            nn.ReLU(True),
-            nn.Linear(32*8, 4*128*128),
-            nn.ReLU(True),
-        )    
-        
-        self.combiner = nn.Sequential(
-            nn.Conv1d(1, 8, kernel_size=9, stride=1, padding=4, bias=False),
-            nn.BatchNorm1d(8),
-            nn.ReLU(True),
-            nn.Conv1d(8, 16, kernel_size=9, stride=1, padding=4, bias=False),
-            nn.BatchNorm1d(16),
-            nn.ReLU(True),
-            nn.Conv1d(16, 32, kernel_size=9, stride=1, padding=4, bias=False),
-            nn.BatchNorm1d(32),
-            nn.ReLU(True),
-        )    
-
-        kw = 4
-        padw = 1
-        input_nc = 5 
+        nc = 7 
         ndf = 16
-        n_layers = 4
-        norm_layer = nn.BatchNorm2d
-        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
-        nf_mult = 1
-        nf_mult_prev = 1
-        for n in range(1, n_layers):  # gradually increase the number of filters
-            nf_mult_prev = nf_mult
-            nf_mult = min(2 ** n, 8)
-            sequence += [
-                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=False),
-                norm_layer(ndf * nf_mult),
-                nn.LeakyReLU(0.2, True)
-            ]
+        self.model = nn.Sequential(
+            # input is (nc) x 64 x 64
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid()
+        )
 
-        nf_mult_prev = nf_mult
-        nf_mult = min(2 ** n_layers, 8)
-        sequence += [
-            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=False),
-            norm_layer(ndf * nf_mult),
-            nn.LeakyReLU(0.2, True)
-        ]
+        ngf = 64 
+        self.combiner = nn.Sequential(
+            nn.Conv1d(1, ngf*4, kernel_size=9, stride=1, padding=4, bias=False),
+            nn.BatchNorm1d(ngf*4),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv1d(ngf*4, ngf*2, kernel_size=9, stride=1, padding=4, bias=False),
+            nn.BatchNorm1d(ngf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv1d(ngf*2, ngf, kernel_size=9, stride=1, padding=4, bias=False),
+            nn.BatchNorm1d(ngf),
+            nn.LeakyReLU(0.2, inplace=True),
+        )    
 
-        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw), nn.Sigmoid()]  # output 1 channel prediction map
-        self.model = nn.Sequential(*sequence)
-
+        return
+    
     def forward(self, input, output):
         input = torch.reshape( input, (-1, 1, 8*128) )
         input = self.combiner( input )
-        
-        x = torch.reshape( input, (-1, 2, 128, 128) )
+        x = torch.reshape( input, (-1, 4, 128, 128) )
         together = torch.cat((x, output), dim=1)
-        return self.model(together)
+        result = self.model(together)
+        return result

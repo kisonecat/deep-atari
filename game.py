@@ -16,7 +16,6 @@ legal_actions=ale.getLegalActionSet()
 
 ale.reset_game()
 
-
 if torch.cuda.is_available():
     print('cuda is available')
 

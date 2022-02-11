@@ -18,18 +18,6 @@ from discriminator import Discriminator
 from ale_py import ALEInterface
 from random import randrange
 
-#print(ale.getScreenRGB())
-#print(ale.getScreenDims())
-#print(len(ale.getRAM()))
-#print(dir(ale))
-
-#for episode in range(10):
-#    while not ale.game_over():
-#        a = legal_actions[randrange(len(legal_actions))]
-#        ale.act(a)
-#    print("resetting",episode)
-#    ale.reset_game()
-
 class AtariDataset(IterableDataset):
     def __init__(self):
         self.ale = ALEInterface()
@@ -37,8 +25,8 @@ class AtariDataset(IterableDataset):
         self.legal_actions=self.ale.getLegalActionSet()
 
         self.ale.reset_game()
-        for _ in range(2):
-            self.ale.setRAM( randrange(128), randrange(256) )
+        #for _ in range(2):
+        #    self.ale.setRAM( randrange(128), randrange(256) )
         
     def __iter__(self):
         return self
@@ -50,8 +38,8 @@ class AtariDataset(IterableDataset):
 
         if self.ale.game_over():
             self.ale.reset_game()
-            for _ in range(2):
-                self.ale.setRAM( randrange(128), randrange(256) )
+            #for _ in range(2):
+            #    self.ale.setRAM( randrange(128), randrange(256) )
             
         memory = np.reshape( np.unpackbits(memory), (128*8) )
         memory = memory.astype(float)
@@ -76,7 +64,7 @@ def init_weights(net, init_type='normal', scaling=0.02):
     print('initialize network with %s' % init_type)
     net.apply(init_func) 
 
-batch_size = 128 
+batch_size = 128
 
 dataset = AtariDataset()
 
@@ -91,10 +79,6 @@ generator = Generator().to(device).float()
 init_weights(generator, 'normal', scaling=0.02)
 adversarial_loss = nn.BCELoss() 
 l1_loss = nn.L1Loss()
-
-#for x in train_dl:
-#    print(x)
-#    print(summary(generator,x[0].shape))
 
 discriminator = Discriminator().to(device)
 
@@ -122,7 +106,7 @@ if False:
     discriminator.load_state_dict(torch.load('discriminator%03d.pt' % start_epoch))
     discriminator.eval()
 
-num_epochs = 200
+num_epochs = 2000
 D_loss_plot, G_loss_plot = [], []
 for epoch in range(start_epoch, start_epoch + num_epochs): 
     print('epoch',epoch)
@@ -136,7 +120,7 @@ for epoch in range(start_epoch, start_epoch + num_epochs):
         target_img = target_img.float().to(device)
 
         # ground truth labels real and fake
-        count = 6
+        count = 5
         real_target = Variable(torch.ones(input_img.size(0), 1, count, count).to(device))
         fake_target = Variable(torch.zeros(input_img.size(0), 1, count, count).to(device))
         
@@ -148,8 +132,6 @@ for epoch in range(start_epoch, start_epoch + num_epochs):
         D_fake_loss   =  discriminator_loss(D_fake, fake_target)
         
         # train discriminator with real images
-        #disc_inp_real = torch.cat((input_img, target_img), 1)
-        #D_real = discriminator(disc_inp_real)
         D_real = discriminator( input_img, target_img )
         D_real_loss = discriminator_loss(D_real,  real_target)
 
