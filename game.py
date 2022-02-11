@@ -8,46 +8,14 @@ import torch
 import torch.nn as nn
 import torchvision
 from time import sleep
+from generator import Generator
+
 ale = ALEInterface()
 ale.loadROM('river-raid.bin')
 legal_actions=ale.getLegalActionSet()
 
 ale.reset_game()
 
-class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-
-        model = []
-
-        self.fc = nn.Sequential(
-            nn.Linear(32*32, 32*16),
-            nn.ReLU(True),
-            nn.Linear(32*16, 32*8),
-            nn.ReLU(True),
-            nn.Linear(32*8, 32*4),
-            nn.ReLU(True),
-            nn.Linear(32*4, 32*2),
-            nn.ReLU(True),
-        )    
-
-        self.model = nn.Sequential(
-            nn.Linear(32*2, 32*4),
-            nn.ReLU(True),
-            nn.Linear(32*4, 32*8),
-            nn.ReLU(True),
-            nn.Linear(32*8, 128*128*3),
-            nn.Tanh()
-        ) 
-        
-        return
-    def forward(self, input):
-        input = torch.flatten(input, 1)
-        input = self.fc( input )
-        #input = torch.reshape( input, (-1, 1, 32, 32) )
-        input = self.model( input )
-        input = torch.reshape( input, (-1, 3, 128, 128) )
-        return input 
 
 if torch.cuda.is_available():
     print('cuda is available')
