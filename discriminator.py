@@ -7,28 +7,29 @@ class Discriminator(nn.Module):
 
         nc = 7 
         ndf = 16
+
         self.model = nn.Sequential(
-            # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
+
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
+
             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
+
             nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
+
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
         ngf = 64 
+
         self.combiner = nn.Sequential(
             nn.Conv1d(1, ngf*4, kernel_size=9, stride=1, padding=4, bias=False),
             nn.BatchNorm1d(ngf*4),
@@ -46,7 +47,6 @@ class Discriminator(nn.Module):
     def forward(self, input, output):
         input = torch.reshape( input, (-1, 1, 8*128) )
         input = self.combiner( input )
-        x = torch.reshape( input, (-1, 4, 128, 128) )
-        together = torch.cat((x, output), dim=1)
-        result = self.model(together)
-        return result
+        input = torch.reshape( input, (-1, 4, 128, 128) )
+
+        return self.model(torch.cat((input, output), dim=1))
