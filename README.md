@@ -1,6 +1,6 @@
 # deep-atari
 
-Watch the YouTube demo at https://youtu.be/OSCOlZFswLU
+Watch the YouTube demo at https://youtu.be/UGFrE6eHYfw
 
 Using `learn.py` which is based on
 
