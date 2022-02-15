@@ -1,3 +1,7 @@
+
+# based on
+# https://learnopencv.com/paired-image-to-image-translation-pix2pix/
+
 import time
 import torch
 import torch.nn as nn
@@ -8,7 +12,6 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import transforms
 import numpy as np
-#from torchsummary import summary
 import torchvision
 from PIL import Image
 
@@ -21,32 +24,29 @@ from random import randrange
 class AtariDataset(IterableDataset):
     def __init__(self):
         self.ale = ALEInterface()
-        self.ale.loadROM('river-raid.bin')
+        self.ale.loadROM('pitfall.bin')
         self.legal_actions=self.ale.getLegalActionSet()
 
         self.ale.reset_game()
-        #for _ in range(2):
-        #    self.ale.setRAM( randrange(128), randrange(256) )
         
     def __iter__(self):
         return self
 
     def __next__(self):
         memory = self.ale.getRAM()
-        self.ale.act( self.legal_actions[randrange(len(self.legal_actions))] )
-        image = self.ale.getScreenRGB()
 
         if self.ale.game_over():
             self.ale.reset_game()
-            #for _ in range(2):
-            #    self.ale.setRAM( randrange(128), randrange(256) )
+        
+        self.ale.act( self.legal_actions[randrange(len(self.legal_actions))] )
+        memory = self.ale.getRAM()
+        image = self.ale.getScreenRGB()
             
         memory = np.reshape( np.unpackbits(memory), (128*8) )
         memory = memory.astype(float)
 
         image = Image.fromarray(image)
         image = torchvision.transforms.Resize( (128,128) ).forward( image )
-        #image.save('tester' + str(randrange(128)) + '.png')
         image = np.array(image) / 255.0
         image = image.transpose( (2, 0, 1) )
         return memory, image
@@ -64,7 +64,7 @@ def init_weights(net, init_type='normal', scaling=0.02):
     print('initialize network with %s' % init_type)
     net.apply(init_func) 
 
-batch_size = 128
+batch_size = 64 
 
 dataset = AtariDataset()
 
@@ -99,6 +99,7 @@ G_optimizer = optim.Adam(generator.parameters(), lr=lr, betas=(b1, b2))
 D_optimizer = optim.Adam(discriminator.parameters(), lr=lr, betas=(b1, b2))
 
 start_epoch = 1
+
 if False:
     print('loading model from epoch',start_epoch)
     generator.load_state_dict(torch.load('generator%03d.pt' % start_epoch))
